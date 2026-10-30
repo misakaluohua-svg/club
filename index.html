@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>26-27学年课后延时安排 · 班级查询</title>
+<style>
+:root{
+  --bg:#f4f6fa; --card:#ffffff; --line:#e6e9f0; --line2:#eef1f6;
+  --tx:#1f2733; --tx2:#5b6675; --tx3:#8b95a5;
+  --pri:#2f6fed; --pri-bg:#eaf1ff;
+  --she:#5b5bd6; --she-bg:#eeedfd;
+  --club:#d97706; --club-bg:#fdf1e0;
+  --no:#8b95a5; --no-bg:#f1f3f7;
+  --ok:#0f9960;
+  --sh:0 1px 2px rgba(20,30,50,.05),0 6px 18px rgba(20,30,50,.05);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--tx);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",Roboto,sans-serif;
+  font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1200px;margin:0 auto;padding:18px 16px 60px}
+
+/* header */
+.hd{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.hd-t{flex:1;min-width:220px}
+.hd h1{margin:0;font-size:21px;font-weight:700;letter-spacing:.3px}
+.hd .sub{margin-top:4px;font-size:13px;color:var(--tx2)}
+.hd .sub b{color:var(--ok);font-weight:600}
+.hd .sub b.off{color:var(--tx3);font-weight:500}
+.btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{
+  border:1px solid var(--line);background:#fff;color:var(--tx2);
+  padding:7px 13px;border-radius:9px;font-size:13px;cursor:pointer;
+  font-family:inherit;transition:.15s;white-space:nowrap
+}
+.btn:hover{border-color:#c9d2e0;color:var(--tx)}
+.btn.pri{background:var(--pri);border-color:var(--pri);color:#fff}
+.btn.pri:hover{background:#2560d8;color:#fff}
+.btn.sm{padding:4px 10px;font-size:12px;border-radius:7px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.danger{color:#b3261e;border-color:#f0c2c0}
+.btn.danger:hover{background:#fdecea;border-color:#e79c98;color:#b3261e}
+.btn.danger.armed{background:#b3261e;border-color:#b3261e;color:#fff}
+.who{font-size:12.5px;color:var(--tx3);display:flex;align-items:center;gap:6px}
+.who b{color:var(--ok);font-weight:600}
+
+/* pickers */
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:var(--sh);margin-bottom:14px}
+.lbl{font-size:12px;color:var(--tx3);margin-bottom:8px;letter-spacing:.5px}
+.grades{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.gtab{
+  border:1px solid var(--line);background:#fff;padding:6px 16px;border-radius:20px;
+  font-size:14px;cursor:pointer;color:var(--tx2);font-family:inherit;transition:.15s
+}
+.gtab:hover{border-color:#c9d2e0}
+.gtab.on{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:600}
+.classes{display:flex;gap:7px;flex-wrap:wrap}
+.ctab{
+  border:1px solid var(--line);background:#fff;padding:5px 12px;border-radius:8px;
+  font-size:13px;cursor:pointer;color:var(--tx2);font-family:inherit;transition:.15s
+}
+.ctab:hover{border-color:#c9d2e0}
+.ctab.on{background:var(--pri-bg);border-color:var(--pri);color:var(--pri);font-weight:600}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+.st{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:var(--sh)}
+.st .n{font-size:24px;font-weight:700;line-height:1.2}
+.st .t{font-size:12px;color:var(--tx3);margin-top:2px}
+.st.p .n{color:var(--pri)} .st.s .n{color:var(--she)} .st.c .n{color:var(--club)} .st.n .n{color:var(--no)}
+
+/* toolbar */
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.seg{display:inline-flex;background:#eaeef5;border-radius:10px;padding:3px}
+.seg button{border:0;background:transparent;padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;color:var(--tx2);font-family:inherit}
+.seg button.on{background:#fff;color:var(--tx);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.search{flex:1;min-width:170px;position:relative}
+.search input{
+  width:100%;border:1px solid var(--line);background:#fff;border-radius:10px;
+  padding:8px 12px 8px 32px;font-size:13px;font-family:inherit;color:var(--tx);outline:none
+}
+.search input:focus{border-color:var(--pri)}
+.search .ic{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--tx3);font-size:13px}
+
+/* period tabs */
+.periods{display:flex;gap:10px;margin-bottom:14px}
+.pbtn{
+  flex:1;background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 14px;
+  cursor:pointer;text-align:left;font-family:inherit;transition:.15s;box-shadow:var(--sh)
+}
+.pbtn:hover{border-color:#c9d2e0}
+.pbtn.on{border-color:var(--pri);box-shadow:0 0 0 2px var(--pri-bg)}
+.pbtn .pt{font-size:15px;font-weight:600;color:var(--tx)}
+.pbtn.on .pt{color:var(--pri)}
+.pbtn .pd{font-size:12px;color:var(--tx3);margin-top:2px}
+.pbtn .pd span{margin-right:10px}
+
+/* groups */
+.grp{margin-bottom:18px}
+.grp-h{display:flex;align-items:center;gap:8px;margin:0 2px 9px}
+.grp-h .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.grp-h .nm{font-size:15px;font-weight:700}
+.grp-h .ct{font-size:12px;color:var(--tx3)}
+.grp-h .ln{flex:1;height:1px;background:var(--line2)}
+.dot.she{background:var(--she)} .dot.club{background:var(--club)} .dot.no{background:var(--no)}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:11px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 13px;box-shadow:var(--sh)}
+.card .ch{display:flex;align-items:baseline;gap:8px}
+.card .cn{font-size:14.5px;font-weight:600;flex:1;line-height:1.4;word-break:break-all}
+.card .cc{font-size:12px;color:var(--tx3);white-space:nowrap}
+.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:5px;font-weight:600;white-space:nowrap}
+.tag.she{background:var(--she-bg);color:var(--she)}
+.tag.club{background:var(--club-bg);color:var(--club)}
+.tag.no{background:var(--no-bg);color:var(--no)}
+.card .tc{font-size:12px;color:var(--tx2);margin-top:5px}
+.card .tc i{font-style:normal;color:var(--tx3)}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.chip{
+  border:1px solid var(--line2);background:#fafbfd;border-radius:6px;padding:2px 8px;
+  font-size:12.5px;cursor:pointer;color:var(--tx2);font-family:inherit;transition:.12s
+}
+.chip:hover{border-color:var(--pri);color:var(--pri);background:var(--pri-bg)}
+.chip.hit{border-color:var(--club);color:var(--club);background:var(--club-bg);font-weight:600}
+.chip.non{background:#f7f8fa;color:var(--tx3);border-style:dashed}
+.chip.non:hover{border-color:var(--no);color:var(--tx);background:var(--no-bg)}
+
+/* table */
+.tbl{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh);overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#f7f9fc;text-align:left;padding:9px 10px;font-size:12px;color:var(--tx3);font-weight:600;white-space:nowrap;border-bottom:1px solid var(--line2)}
+td{padding:8px 10px;border-bottom:1px solid var(--line2);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tr.row{cursor:pointer}
+tr.row:hover{background:#f9fbff}
+td .cell{display:block;color:var(--tx3);font-size:12.5px}
+td .cell b{display:block;color:var(--tx);font-weight:500;font-size:13px}
+td .cell em{font-style:normal;color:var(--tx3)}
+.no-tx{color:var(--tx3)}
+.tbl-wrap{overflow-x:auto}
+
+/* role switch */
+.roles{display:flex;gap:10px;margin-bottom:14px}
+.role{
+  flex:1;background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 14px;
+  cursor:pointer;text-align:left;font-family:inherit;transition:.15s;box-shadow:var(--sh);
+  font-size:14px;color:var(--tx2)
+}
+.role:hover{border-color:#c9d2e0}
+.role.on{border-color:var(--pri);box-shadow:0 0 0 2px var(--pri-bg);color:var(--pri);font-weight:600}
+.role small{display:block;font-size:12px;color:var(--tx3);font-weight:400;margin-top:1px}
+.role.on small{color:var(--tx2)}
+
+/* course index */
+.cfilter{display:flex;gap:6px;flex-wrap:wrap}
+.cfilter button{border:1px solid var(--line);background:#fff;padding:5px 14px;border-radius:20px;font-size:13px;cursor:pointer;color:var(--tx2);font-family:inherit}
+.cfilter button:hover{border-color:#c9d2e0}
+.cfilter button.on{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:600}
+.ccards{display:grid;grid-template-columns:repeat(auto-fill,minmax(266px,1fr));gap:10px}
+.ccard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 13px;box-shadow:var(--sh);cursor:pointer;transition:.15s}
+.ccard:hover{border-color:var(--pri)}
+.ccard .cn2{font-size:14.5px;font-weight:600;line-height:1.4;word-break:break-all}
+.ccard .cm{font-size:12px;color:var(--tx3);margin-top:6px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.ccard .cm b{color:var(--tx);font-weight:600}
+
+/* course head */
+.chead{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 15px;box-shadow:var(--sh);margin-bottom:14px}
+.chead .ct1{font-size:17px;font-weight:700;line-height:1.35}
+.chead .ct2{font-size:12.5px;color:var(--tx3);margin-top:4px}
+.chead .sp{flex:1;min-width:20px}
+.clsgrp{margin-bottom:16px}
+.clsgrp-h{display:flex;align-items:center;gap:8px;margin:0 2px 8px}
+.clsgrp-h .nm{font-size:14px;font-weight:700}
+.clsgrp-h .ct{font-size:12px;color:var(--tx3)}
+.clsgrp-h .ln{flex:1;height:1px;background:var(--line2)}
+
+/* empty / status */
+.empty{background:#fff;border:1px dashed var(--line);border-radius:12px;padding:34px 16px;text-align:center;color:var(--tx3);font-size:14px}
+.hide{display:none !important}
+
+/* dialog */
+.mask{position:fixed;inset:0;background:rgba(18,26,40,.42);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.dlg{background:#fff;border-radius:16px;width:100%;max-width:470px;max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(10,20,40,.25)}
+.dlg .dh{padding:16px 18px 0}
+.dlg .dh h3{margin:0;font-size:17px}
+.dlg .dh p{margin:3px 0 0;font-size:12.5px;color:var(--tx3)}
+.dlg .db{padding:14px 18px}
+.slot{border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin-bottom:11px;background:#fcfdff}
+.slot .sh{font-size:13px;font-weight:600;margin-bottom:9px;display:flex;align-items:center;gap:7px}
+.fld{margin-bottom:9px}
+.fld:last-child{margin-bottom:0}
+.fld label{display:block;font-size:11.5px;color:var(--tx3);margin-bottom:3px}
+.fld input,.fld select{
+  width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 10px;
+  font-size:13.5px;font-family:inherit;color:var(--tx);background:#fff;outline:none
+}
+.fld input:focus,.fld select:focus{border-color:var(--pri)}
+.dlg .df{display:flex;gap:9px;padding:0 18px 18px}
+.dlg .df .btn{flex:1;padding:9px;font-size:14px}
+.warn{font-size:12px;color:var(--tx3);padding:0 18px 12px}
+.err{font-size:12.5px;color:#b3261e;padding:0 18px 10px;min-height:0}
+
+.toast{
+  position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(20px);
+  background:#1f2733;color:#fff;padding:9px 18px;border-radius:20px;font-size:13.5px;
+  opacity:0;pointer-events:none;transition:.22s;z-index:99;box-shadow:0 8px 24px rgba(0,0,0,.2)
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.ft{margin-top:22px;text-align:center;font-size:12px;color:var(--tx3);line-height:1.9}
+
+@media (max-width:860px){
+  .stats{grid-template-columns:repeat(3,1fr)}
+}
+@media (max-width:560px){
+  .wrap{padding:14px 12px 50px}
+  .hd h1{font-size:18px}
+  .stats{grid-template-columns:repeat(2,1fr);gap:8px}
+  .st .n{font-size:20px}
+  .cards{grid-template-columns:1fr}
+  .periods{flex-direction:column}
+  .hd .sub{font-size:12px}
+}
+@media print{
+  body{background:#fff}
+  .btns,.bar,.periods,.hd .sub,.ft,.who{display:none !important}
+  .panel,.st,.card,.tbl{box-shadow:none}
+  .wrap{max-width:none;padding:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hd">
+    <div class="hd-t">
+      <h1>26-27学年 课后延时安排</h1>
+      <div class="sub">数据源：腾讯云数据库 &nbsp;·&nbsp; <span id="status">准备中…</span></div>
+    </div>
+    <div class="btns">
+      <span class="who" id="who"></span>
+      <button class="btn" id="btnRefresh">刷新数据</button>
+      <button class="btn hide" id="btnAdd">+ 新增学生</button>
+      <button class="btn" id="btnPrint">打印 / 导出PDF</button>
+    </div>
+  </div>
+
+  <div class="roles" id="roleSeg">
+    <button class="role on" data-r="class">班主任 · 按班级查看<small>看本班谁报了社团、谁报了俱乐部、谁没报</small></button>
+    <button class="role" data-r="course">授课教师 · 按课程查看<small>按社团/俱乐部名称查点名册，跨班汇总</small></button>
+  </div>
+
+  <div id="paneClass">
+    <div class="panel">
+      <div class="lbl">选择年级</div>
+      <div class="grades" id="grades"></div>
+      <div class="lbl">选择班级</div>
+      <div class="classes" id="classes"></div>
+    </div>
+  </div>
+
+  <div class="periods" id="periods"></div>
+
+  <div id="paneCourse" class="hide">
+    <div class="panel">
+      <div class="lbl">筛选社团 / 俱乐部</div>
+      <div class="cfilter" id="cTypeSeg">
+        <button data-t="" class="on">全部</button>
+        <button data-t="社团">只看社团</button>
+        <button data-t="俱乐部">只看俱乐部</button>
+      </div>
+      <div class="search" style="margin-top:9px">
+        <span class="ic">&#128269;</span>
+        <input id="cq" type="search" placeholder="搜索课程名称 / 任课教师…" autocomplete="off">
+      </div>
+    </div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="bar" id="bar">
+    <div class="seg" id="viewSeg">
+      <button data-v="group" class="on">按课程分组</button>
+      <button data-v="list">学生名单</button>
+    </div>
+    <div class="search" id="qWrap">
+      <span class="ic">&#128269;</span>
+      <input id="q" type="search" placeholder="搜索学生姓名 / 课程 / 教师…" autocomplete="off">
+    </div>
+    <button class="btn sm" id="btnCopy">复制未报名名单</button>
+    <button class="btn sm" id="btnCsv">导出本班CSV</button>
+  </div>
+
+  <div id="main"></div>
+
+  <div class="ft">
+    浏览无需登录；修改需登录后操作，改动实时写入腾讯云数据库，两个视角共享同一份数据。<br>
+    数据问题请联系教导处 · 本页所有改动会记录「更新时间」
+  </div>
+</div>
+
+<div id="mask" class="mask hide">
+  <div class="dlg">
+    <div class="dh">
+      <h3 id="dTitle">编辑报名</h3>
+      <p id="dSub"></p>
+    </div>
+    <div class="db" id="dBody"></div>
+    <div class="err" id="dErr"></div>
+    <div class="df">
+      <button class="btn danger hide" id="dDel">删除</button>
+      <button class="btn" id="dCancel">取消</button>
+      <button class="btn pri" id="dSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="loginMask" class="mask hide">
+  <div class="dlg" style="max-width:360px">
+    <div class="dh">
+      <h3>登录后可修改</h3>
+      <p>浏览无需登录；编辑报名、增删学生需登录。</p>
+    </div>
+    <div class="db">
+      <div class="fld"><label>账号</label><input type="text" id="lgUser" autocomplete="username" placeholder="请输入账号"></div>
+      <div class="fld"><label>密码</label><input type="password" id="lgPass" autocomplete="current-password" placeholder="请输入密码"></div>
+    </div>
+    <div class="err" id="lgErr"></div>
+    <div class="df">
+      <button class="btn" id="lgCancel">取消</button>
+      <button class="btn pri" id="lgOk">登录</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ================= 云端配置 ================= */
+var ENV        = 'thirsty-wallaby-d6fejsw7133a6130';
+var REGION     = 'ap-shanghai';
+var ACCESS_KEY = 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjJmYjkwZDk5LThhNzgtNGZlMC05MjczLWYxZGJiYTY5NmNlNyJ9.eyJpc3MiOiJodHRwczovL3RoaXJzdHktd2FsbGFieS1kNmZlanN3NzEzM2E2MTMwLmFwLXNoYW5naGFpLnRjYi1hcGkudGVuY2VudGNsb3VkYXBpLmNvbSIsInN1YiI6ImFub24iLCJhdWQiOiJ0aGlyc3R5LXdhbGxhYnktZDZmZWpzdzcxMzNhNjEzMCIsImV4cCI6NDA5NjkxOTYxNCwiaWF0IjoxNzkzMjM2NDE0LCJub25jZSI6IlZUMFZEZWRtVFZlZE9BTzNZemxvVXciLCJhdF9oYXNoIjoiVlQwVkRlZG1UVmVkT0FPM1l6bG9VdyIsIm5hbWUiOiJBbm9ueW1vdXMiLCJzY29wZSI6ImFub255bW91cyIsInByb2plY3RfaWQiOiJ0aGlyc3R5LXdhbGxhYnktZDZmZWpzdzcxMzNhNjEzMCIsIm1ldGEiOnsicGxhdGZvcm0iOiJQdWJsaXNoYWJsZUtleSJ9LCJyb2xlIjoiYW5vbiIsImlzX2Fub255bW91cyI6dHJ1ZSwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiYW5vbnltb3VzIiwicHJvdmlkZXJzIjpbImFub255bW91cyJdfSwidXNlcl9tZXRhZGF0YSI6eyJuYW1lIjoiQW5vbnltb3VzIn0sInVzZXJfdHlwZSI6IiIsImNsaWVudF90eXBlIjoiY2xpZW50X3VzZXIiLCJpc19zeXN0ZW1fYWRtaW4iOmZhbHNlfQ.w4elegT6YLIBVe6EJADwpkSNQI_nFRHjEPgtUGQOs3PooZ7Je3vYX6b0V5OHkTiJOEmQhXHViJVwZJ5RJaZUSBPE4DsErhrEt8Ryz6y5kvVx4k-gAI05VhyacZe8HQbuZi0D145VnNProc28VrE5ChpkmLnQzpr2wLZ8Jd1-wT_Me8inIMMXSRq5YIGU24k4tW73STASSexvrU7pQClRuvM8Lo-DoqSrcOWzccLqTpLtuTLIxNwC1b5PtL_xCbO9VAmpN_gz1ylG3fTeB6jjG-il5XXUH0NhSxFRizsrBBY5dq3otsqs1H1Ahoj4x_PI1o5dg_p0ll0BDWFx3OM9qw';
+var TABLE      = 'student_club';
+
+var CACHE_KEY = 'yanshi_pg_rows_v1';
+var PREF_KEY  = 'yanshi_pref_v1';
+var REV_KEY   = 'yanshi_rev_v2';
+var PAGE_SIZE = 800;
+
+var app = null, db = null, SESSION = null;
+
+var NL = String.fromCharCode(13) + String.fromCharCode(10);
+var PERIODS = [
+  { k:'a', name:'周一周二', course:'mon_tue_course', type:'mon_tue_type', teacher:'mon_tue_teacher' },
+  { k:'b', name:'周三周四', course:'wed_thu_course', type:'wed_thu_type', teacher:'wed_thu_teacher' }
+];
+
+var RAW = [];
+var ROWS = [];
+var S = { role:'class', grade:'', cls:'', period:'a', view:'group', q:'', cq:'', ctype:'', course:'' };
+var EDIT = null;
+var EDIT_CTX = 'class';
+var DLG_MODE = 'edit';
+var COURSES = { a:[], b:[] };
+var CUR_COURSES = [];
+var LAST_SIG = '';
+var DEL_ARM = false;
+
+/* ---------- utils ---------- */
+function $(id){ return document.getElementById(id); }
+function esc(s){
+  return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function(c){
+    return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c];
+  });
+}
+function cnum(c){
+  var p = String(c || '').replace('班','').split('.');
+  return (parseInt(p[0],10) || 0) * 100 + (parseInt(p[1],10) || 0);
+}
+function toast(msg, bad){
+  var t = $('toast');
+  t.textContent = msg;
+  t.style.background = bad ? '#b3261e' : '#1f2733';
+  t.classList.add('on');
+  setTimeout(function(){ t.classList.remove('on'); }, 2200);
+}
+function isNone(v){ return !v || v === '未报名'; }
+function loggedIn(){ return !!SESSION; }
+
+/* ---------- 数据层(经云函数代理访问腾讯云 PostgreSQL) ---------- */
+var API_BASE = 'https://thirsty-wallaby-d6fejsw7133a6130-1332325594.ap-shanghai.app.tcloudbase.com/api/club';
+var SESS_KEY = 'yanshi_session_v1';
+
+function loadSession(){
+  try {
+    var s = JSON.parse(localStorage.getItem(SESS_KEY) || 'null');
+    return (s && s.access_token) ? s : null;
+  } catch (e) { return null; }
+}
+function saveSession(s){
+  try {
+    if (s) localStorage.setItem(SESS_KEY, JSON.stringify(s));
+    else localStorage.removeItem(SESS_KEY);
+  } catch (e) {}
+}
+
+function httpJson(url, opt){
+  return fetch(url, opt).then(function(r){
+    var ct = r.headers.get('content-type') || '';
+    var p = (ct.indexOf('json') >= 0 || ct.indexOf('text') >= 0) ? r.text() : Promise.resolve('');
+    return p.then(function(txt){
+      var j = null;
+      try { j = txt ? JSON.parse(txt) : null; } catch (e) { j = null; }
+      return { status: r.status, ok: r.ok, body: j, text: txt };
+    });
+  });
+}
+
+function qb(table){
+  return {
+    _t: table, _sel: '*', _f: {}, _ord: '', _rng: null, _op: 'GET', _body: null,
+    select: function(s){ this._sel = s || '*'; return this; },
+    order: function(c, o){
+      var dir = (o && o.ascending === false) ? 'desc' : 'asc';
+      this._ord = c + '.' + dir;
+      return this;
+    },
+    range: function(a, b){ this._rng = [a, b]; return this; },
+    eq: function(c, v){ this._f[c] = 'eq.' + v; return this; },
+    update: function(d){ this._op = 'PATCH'; this._body = d; return this; },
+    insert: function(d){ this._op = 'POST'; this._body = d; return this; },
+    delete: function(){ this._op = 'DELETE'; return this; },
+    then: function(a, b){ return this._run().then(a, b); },
+    _url: function(){
+      var ps = ['select=' + encodeURIComponent(this._sel)];
+      for (var k in this._f){ ps.push(encodeURIComponent(k) + '=' + encodeURIComponent(this._f[k])); }
+      if (this._ord) ps.push('order=' + encodeURIComponent(this._ord));
+      if (this._rng){
+        ps.push('offset=' + this._rng[0]);
+        ps.push('limit=' + (this._rng[1] - this._rng[0] + 1));
+      }
+      return API_BASE + '/rows/' + encodeURIComponent(this._t) + '?' + ps.join('&');
+    },
+    _run: function(){
+      var self = this;
+      var h = { 'Content-Type': 'application/json' };
+      var s = loadSession();
+      if (s) h['Authorization'] = 'Bearer ' + s.access_token;
+      if (this._op === 'GET') h['Prefer'] = 'count=exact';
+      else if (this._op === 'POST' || this._op === 'PATCH') h['Prefer'] = 'return=representation';
+      var opt = { method: this._op, headers: h };
+      if (this._body) opt.body = JSON.stringify(this._body);
+      return httpJson(this._url(), opt).then(function(r){
+        var b = r.body;
+        if (!r.ok){
+          return { data: null, error: { message: (b && (b.message || b.error_description)) || ('HTTP ' + r.status), code: (b && b.code) || r.status } };
+        }
+        if (r.status === 204 || b === null || b === '') return { data: [], error: null };
+        var list = Array.isArray(b) ? b : [b];
+        return { data: list, error: null };
+      }).catch(function(e){
+        return { data: null, error: { message: (e && e.message) ? e.message : '网络错误，请稍后重试' } };
+      });
+    }
+  };
+}
+
+function initSdk(){
+  app = {
+    auth: {
+      signInWithPassword: function(o){
+        return httpJson(API_BASE + '/auth/signin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: o.username, password: o.password })
+        }).then(function(r){
+          if (!r.ok || !r.body || !r.body.access_token){
+            var msg = (r.body && (r.body.message || r.body.msg || r.body.error_description)) || '账号或密码不正确';
+            return { data: null, error: { message: msg } };
+          }
+          var sess = {
+            access_token: r.body.access_token,
+            refresh_token: r.body.refresh_token || '',
+            user: r.body.user || { username: o.username }
+          };
+          saveSession(sess);
+          return { data: { session: sess }, error: null };
+        }).catch(function(e){
+          return { data: null, error: { message: (e && e.message) || '登录失败' } };
+        });
+      },
+      getSession: function(){
+        return Promise.resolve({ data: { session: loadSession() }, error: null });
+      },
+      signOut: function(){
+        saveSession(null);
+        return Promise.resolve({ error: null });
+      }
+    }
+  };
+  db = { from: function(t){ return qb(t); } };
+  return true;
+}
+
+/* ---------- data ---------- */
+function normalize(r){
+  var o = {
+    id: r.id,
+    idx: r.seq || 0,
+    grade: r.grade || '',
+    cls: r.class_name || '',
+    name: r.student_name || '',
+    ts: r.updated_at || ''
+  };
+  for (var i = 0; i < PERIODS.length; i++){
+    var p = PERIODS[i];
+    o[p.k] = {
+      course: r[p.course] || '',
+      type: r[p.type] || '',
+      teacher: r[p.teacher] || ''
+    };
+    if (isNone(o[p.k].type)) o[p.k].type = '';
+    if (!o[p.k].course) o[p.k].teacher = '';
+  }
+  return o;
+}
+function readCache(){
+  try {
+    var raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    var arr = JSON.parse(raw);
+    return (arr && arr.length) ? arr : null;
+  } catch (e) { return null; }
+}
+function fetchAll(){
+  var out = [], from = 0, guard = 0;
+  function step(){
+    return db.from(TABLE)
+      .select('*')
+      .order('id', { ascending: true })
+      .range(from, from + PAGE_SIZE - 1)
+      .then(function(res){
+        if (res && res.error) throw new Error(res.error.message || '查询失败');
+        var list = (res && res.data) ? res.data : [];
+        out = out.concat(list);
+        guard++;
+        if (list.length < PAGE_SIZE || guard > 20) return out;
+        from += PAGE_SIZE;
+        return step();
+      });
+  }
+  return step();
+}
+function apply(rows, src){
+  RAW = rows || [];
+  ROWS = [];
+  for (var i = 0; i < RAW.length; i++) ROWS.push(normalize(RAW[i]));
+  ROWS.sort(function(x, y){
+    var d = cnum(x.cls) - cnum(y.cls);
+    return d !== 0 ? d : ((x.idx || 0) - (y.idx || 0));
+  });
+  COURSES = { a: pickCourses('a'), b: pickCourses('b') };
+  if (!S.grade || !hasGrade(S.grade)) S.grade = grades()[0] || '';
+  if (!S.cls || !hasClass(S.cls)) S.cls = classesOf(S.grade)[0] || '';
+  savePref();
+  $('status').innerHTML = '<b>已同步 ' + ROWS.length + ' 条</b>（' + esc(src) + '）';
+  renderAll();
+}
+function pickCourses(k){
+  var seen = {}, out = [];
+  for (var i = 0; i < ROWS.length; i++){
+    var c = ROWS[i][k].course;
+    if (c && !seen[c]){ seen[c] = 1; out.push(c); }
+  }
+  out.sort(function(a,b){ return a.localeCompare(b, 'zh'); });
+  return out;
+}
+function hasGrade(g){
+  for (var i=0;i<ROWS.length;i++) if (ROWS[i].grade === g) return true;
+  return false;
+}
+function hasClass(c){
+  for (var i=0;i<ROWS.length;i++) if (ROWS[i].cls === c) return true;
+  return false;
+}
+function grades(){
+  var m = {}, out = [];
+  for (var i=0;i<ROWS.length;i++){ var g = ROWS[i].grade; if (g && !m[g]){ m[g]=1; out.push(g); } }
+  var order = ['三年级','四年级','五年级','六年级'];
+  out.sort(function(a,b){ return order.indexOf(a) - order.indexOf(b); });
+  return out;
+}
+function classesOf(g){
+  var m = {}, out = [];
+  for (var i=0;i<ROWS.length;i++) if (ROWS[i].grade === g && ROWS[i].cls && !m[ROWS[i].cls]){ m[ROWS[i].cls]=1; out.push(ROWS[i].cls); }
+  out.sort(function(a,b){ return cnum(a) - cnum(b); });
+  return out;
+}
+function loadPref(){
+  try {
+    var raw = localStorage.getItem(PREF_KEY);
+    if (raw){ var p = JSON.parse(raw); if (p && p.role) S.role = p.role; if (p && p.grade) S.grade = p.grade; if (p && p.cls) S.cls = p.cls; if (p && p.period) S.period = p.period; if (p && p.view) S.view = p.view; }
+  } catch(e){}
+}
+function savePref(){
+  try { localStorage.setItem(PREF_KEY, JSON.stringify({ role:S.role, grade:S.grade, cls:S.cls, period:S.period, view:S.view })); } catch(e){}
+}
+
+function sigOf(rows){
+  var s = (rows ? rows.length : 0) + '|';
+  for (var i=0;i<rows.length;i++){
+    var r = rows[i];
+    s += (r.id||'') + ':' + (r.student_name||'') + ':' + (r.mon_tue_course||'') + '/' + (r.mon_tue_type||'') + '/' + (r.mon_tue_teacher||'') + ':' + (r.wed_thu_course||'') + '/' + (r.wed_thu_type||'') + '/' + (r.wed_thu_teacher||'') + ';';
+  }
+  return s;
+}
+function load(silent){
+  if (!silent) $('status').textContent = '加载中…';
+  if (!db){
+    var c0 = readCache();
+    if (c0){ apply(c0, '本地缓存'); toast('云端未连接，使用本地缓存'); return; }
+    $('status').innerHTML = '<b class="off">未连接云端</b>';
+    $('main').innerHTML = '<div class="empty">当前环境未接入云端数据库，无法读取数据。</div>';
+    return;
+  }
+  fetchAll().then(function(rows){
+    var sig = sigOf(rows);
+    if (silent && LAST_SIG && LAST_SIG === sig){
+      $('status').innerHTML = '<b>已同步 ' + ROWS.length + ' 条</b>（云端）';
+      return;
+    }
+    LAST_SIG = sig;
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(rows)); } catch(e){}
+    apply(rows, '云端');
+  }).catch(function(err){
+    var c = readCache();
+    if (silent){ toast('云端同步失败，稍后重试', true); return; }
+    if (c){ apply(c, '本地缓存'); toast('云端读取失败，已用本地缓存', true); }
+    else { $('status').innerHTML = '<b class="off">读取失败</b>'; $('main').innerHTML = '<div class="empty">读取云端数据失败：' + esc(err && err.message ? err.message : err) + '</div>'; }
+  });
+}
+
+/* ---------- auth ---------- */
+function renderAuthUI(){
+  var on = loggedIn();
+  $('who').innerHTML = on
+    ? '<b>&#9679; ' + esc(userName()) + '</b><button class="btn sm" id="btnOut">退出</button>'
+    : '<span style="color:var(--tx3)">只读浏览</span><button class="btn sm pri" id="btnLogin">登录</button>';
+  $('btnAdd').classList.toggle('hide', !on || S.role === 'course');
+  var lo = $('btnLogin'), ou = $('btnOut');
+  if (lo) lo.addEventListener('click', openLogin);
+  if (ou) ou.addEventListener('click', doLogout);
+}
+function userName(){
+  if (!SESSION) return '';
+  var u = SESSION.user || {};
+  return u.username || u.user_metadata && u.user_metadata.name || u.email || '已登录';
+}
+function checkSession(){
+  return app.auth.getSession().then(function(res){
+    SESSION = (res && res.data && res.data.session) ? res.data.session : null;
+    renderAuthUI();
+  }).catch(function(){ SESSION = null; renderAuthUI(); });
+}
+function openLogin(){
+  $('lgErr').textContent = '';
+  $('lgUser').value = '';
+  $('lgPass').value = '';
+  $('loginMask').classList.remove('hide');
+  setTimeout(function(){ $('lgUser').focus(); }, 60);
+}
+function closeLogin(){ $('loginMask').classList.add('hide'); }
+function submitLogin(){
+  var u = ($('lgUser').value || '').trim();
+  var p = $('lgPass').value || '';
+  if (!u || !p){ $('lgErr').textContent = '请输入账号和密码'; return; }
+  $('lgErr').textContent = '';
+  $('lgOk').disabled = true;
+  app.auth.signInWithPassword({ username: u, password: p }).then(function(res){
+    if (res && res.error){ $('lgErr').textContent = res.error.message || '登录失败'; return; }
+    if (!res || !res.data || !res.data.session){ $('lgErr').textContent = '登录失败：未获得会话'; return; }
+    SESSION = res.data.session;
+    closeLogin();
+    renderAuthUI();
+    renderAll();
+    toast('已登录，可以修改数据');
+  }).catch(function(e){
+    $('lgErr').textContent = (e && e.message) ? e.message : '登录失败';
+  }).then(function(){ $('lgOk').disabled = false; });
+}
+function doLogout(){
+  app.auth.signOut().then(function(){
+    SESSION = null;
+    renderAuthUI();
+    renderAll();
+    toast('已退出登录');
+  }).catch(function(){ toast('退出失败', true); });
+}
+function requireLogin(){
+  if (loggedIn()) return true;
+  openLogin();
+  toast('请先登录再修改', true);
+  return false;
+}
+
+/* ---------- selection ---------- */
+function current(){
+  var q = (S.q || '').trim().toLowerCase();
+  var out = [];
+  for (var i=0;i<ROWS.length;i++){
+    var r = ROWS[i];
+    if (r.cls !== S.cls) continue;
+    if (q){
+      var hay = (r.name + ' ' + r.a.course + ' ' + r.a.teacher + ' ' + r.b.course + ' ' + r.b.teacher).toLowerCase();
+      if (hay.indexOf(q) === -1) continue;
+    }
+    out.push(r);
+  }
+  return out;
+}
+
+/* ---------- render ---------- */
+function per(){
+  for (var i=0;i<PERIODS.length;i++) if (PERIODS[i].k === S.period) return PERIODS[i];
+  return PERIODS[0];
+}
+function scopeRows(){
+  if (S.role === 'course') return ROWS;
+  var out = [];
+  for (var i=0;i<ROWS.length;i++) if (ROWS[i].cls === S.cls) out.push(ROWS[i]);
+  return out;
+}
+function renderAll(){
+  var course = S.role === 'course';
+  var rbs = $('roleSeg').getElementsByTagName('button');
+  for (var i=0;i<rbs.length;i++) rbs[i].className = (rbs[i].getAttribute('data-r') === S.role) ? 'role on' : 'role';
+  $('paneClass').classList.toggle('hide', course);
+  $('paneCourse').classList.toggle('hide', !course);
+  $('bar').classList.toggle('hide', course);
+  $('btnAdd').classList.toggle('hide', course || !loggedIn());
+  renderPeriods();
+  if (course){
+    renderCourseStats();
+    renderCourseIndex();
+  } else {
+    renderGrades(); renderClasses(); renderStats(); renderMain();
+  }
+}
+
+function renderGrades(){
+  var gs = grades(), h = '';
+  for (var i=0;i<gs.length;i++) h += '<button class="gtab' + (gs[i]===S.grade?' on':'') + '" data-g="' + esc(gs[i]) + '">' + esc(gs[i]) + '</button>';
+  $('grades').innerHTML = h;
+}
+function renderClasses(){
+  var cs = classesOf(S.grade), h = '';
+  for (var i=0;i<cs.length;i++) h += '<button class="ctab' + (cs[i]===S.cls?' on':'') + '" data-c="' + esc(cs[i]) + '">' + esc(cs[i]) + '</button>';
+  $('classes').innerHTML = h;
+}
+function renderStats(){
+  var all = [], i;
+  for (i=0;i<ROWS.length;i++) if (ROWS[i].cls === S.cls) all.push(ROWS[i]);
+  var she = 0, club = 0, none = 0, both = 0;
+  for (i=0;i<all.length;i++){
+    var r = all[i];
+    if (r.a.course){ if (r.a.type === '俱乐部') club++; else she++; }
+    if (r.b.course){ if (r.b.type === '俱乐部') club++; else she++; }
+    if (!r.a.course && !r.b.course) both++;
+    else if (!r.a.course || !r.b.course) none++;
+  }
+  var h = '';
+  h += '<div class="st p"><div class="n">' + all.length + '</div><div class="t">班级总人数</div></div>';
+  h += '<div class="st s"><div class="n">' + she + '</div><div class="t">社团人次</div></div>';
+  h += '<div class="st c"><div class="n">' + club + '</div><div class="t">俱乐部人次</div></div>';
+  h += '<div class="st n"><div class="n">' + none + '</div><div class="t">仅报一个时段</div></div>';
+  h += '<div class="st n"><div class="n">' + both + '</div><div class="t">两个时段都没报</div></div>';
+  $('stats').innerHTML = h;
+}
+function renderPeriods(){
+  var all = scopeRows(), i;
+  var h = '';
+  for (i=0;i<PERIODS.length;i++){
+    var p = PERIODS[i], ok = 0, no = 0, she = 0, club = 0;
+    for (var j=0;j<all.length;j++){
+      var s = all[j][p.k];
+      if (s.course){ ok++; if (s.type === '俱乐部') club++; else she++; } else no++;
+    }
+    h += '<button class="pbtn' + (p.k === S.period ? ' on' : '') + '" data-p="' + p.k + '">'
+      +  '<div class="pt">' + esc(p.name) + '</div>'
+      +  '<div class="pd"><span>已报 <b>' + ok + '</b> 人</span><span>未报 <b>' + no + '</b> 人</span>'
+      +  '<span>社团 ' + she + ' · 俱乐部 ' + club + '</span></div></button>';
+  }
+  $('periods').innerHTML = h;
+}
+
+function renderMain(){
+  var list = current();
+  if (!list.length){
+    $('main').innerHTML = '<div class="empty">没有匹配的学生。换个班级或清空搜索试试。</div>';
+    return;
+  }
+  if (S.view === 'list') renderList(list); else renderGroup(list);
+}
+
+function renderGroup(list){
+  var p = null, i;
+  for (i=0;i<PERIODS.length;i++) if (PERIODS[i].k === S.period) p = PERIODS[i];
+  var she = [], club = [], other = [], none = [];
+  for (i=0;i<list.length;i++){
+    var s = list[i][p.k];
+    if (!s.course){ none.push(list[i]); continue; }
+    if (s.type === '俱乐部') club.push(list[i]);
+    else if (s.type === '社团') she.push(list[i]);
+    else other.push(list[i]);
+  }
+  var h = '';
+  h += section('she', '社团', she, p, '社团');
+  h += section('club', '俱乐部', club, p, '俱乐部');
+  if (other.length) h += section('no', '类型待确认', other, p, '');
+  h += noneSection(none, p);
+  $('main').innerHTML = h;
+}
+function section(dot, title, arr, p, forceType){
+  var groups = {}, order = [], i;
+  for (i=0;i<arr.length;i++){
+    var s = arr[i][p.k], c = s.course || '（未填课程）';
+    if (!groups[c]){ groups[c] = { course:c, teachers:{}, list:[] }; order.push(c); }
+    groups[c].list.push(arr[i]);
+    if (s.teacher) groups[c].teachers[s.teacher] = 1;
+  }
+  var h = '<div class="grp"><div class="grp-h"><span class="dot ' + dot + '"></span>'
+        + '<span class="nm">' + esc(title) + '</span>'
+        + '<span class="ct">' + arr.length + ' 人 · ' + order.length + ' 门</span>'
+        + '<span class="ln"></span></div>';
+  if (!order.length){
+    h += '<div class="empty" style="padding:18px">本时段暂无' + esc(title) + '报名</div></div>';
+    return h;
+  }
+  h += '<div class="cards">';
+  for (i=0;i<order.length;i++){
+    var g = groups[order[i]];
+    var ts = Object.keys(g.teachers);
+    var tp = g.list[0][p.k].type || forceType || '社团';
+    h += '<div class="card">'
+      +  '<div class="ch"><span class="cn">' + esc(g.course) + '</span>'
+      +  '<span class="cc">' + g.list.length + ' 人</span></div>'
+      +  '<div class="tc">' + tagHTML(tp) + (ts.length ? ' <i>任课：</i>' + esc(ts.join('、')) : ' <i>任课：待定</i>') + '</div>'
+      +  '<div class="chips">';
+    for (var j=0;j<g.list.length;j++){
+      var st = g.list[j];
+      h += '<button class="chip' + (matchQ(st.name) ? ' hit' : '') + '" data-id="' + esc(st.id) + '">' + esc(st.name) + '</button>';
+    }
+    h += '</div></div>';
+  }
+  h += '</div></div>';
+  return h;
+}
+function noneSection(arr, p){
+  var h = '<div class="grp"><div class="grp-h"><span class="dot no"></span>'
+        + '<span class="nm">' + esc(p.name) + '未报名</span>'
+        + '<span class="ct">' + arr.length + ' 人</span><span class="ln"></span></div>';
+  if (!arr.length){
+    h += '<div class="empty" style="padding:18px">本时段全班均已报名</div></div>';
+    return h;
+  }
+  h += '<div class="card"><div class="chips">';
+  for (var i=0;i<arr.length;i++){
+    h += '<button class="chip non' + (matchQ(arr[i].name) ? ' hit' : '') + '" data-id="' + esc(arr[i].id) + '">' + esc(arr[i].name) + '</button>';
+  }
+  h += '</div></div></div>';
+  return h;
+}
+function matchQ(name){
+  var q = (S.q || '').trim();
+  return !!q && name.indexOf(q) !== -1;
+}
+function tagHTML(t){
+  if (t === '俱乐部') return '<span class="tag club">俱乐部</span>';
+  if (t === '社团') return '<span class="tag she">社团</span>';
+  return '<span class="tag no">' + esc(t || '未报名') + '</span>';
+}
+
+function renderList(list){
+  var h = '<div class="tbl"><div class="tbl-wrap"><table><thead><tr>'
+        + '<th style="width:44px">序</th><th style="width:96px">姓名</th>'
+        + '<th>周一周二</th><th>周三周四</th></tr></thead><tbody>';
+  for (var i=0;i<list.length;i++){
+    var r = list[i];
+    h += '<tr class="row" data-id="' + esc(r.id) + '">'
+      +  '<td style="color:#8b95a5">' + (r.idx || '') + '</td>'
+      +  '<td><b>' + esc(r.name) + '</b></td>'
+      +  cellHTML(r.a) + cellHTML(r.b)
+      +  '</tr>';
+  }
+  h += '</tbody></table></div></div>';
+  $('main').innerHTML = h;
+}
+function cellHTML(s){
+  if (!s.course) return '<td><span class="no-tx">未报名</span></td>';
+  return '<td><span class="cell"><b>' + esc(s.course) + '</b>'
+    + tagHTML(s.type)
+    + (s.teacher ? ' <em>' + esc(s.teacher) + '</em>' : '')
+    + '</span></td>';
+}
+
+/* ---------- course view ---------- */
+function renderCourseStats(){
+  var p = per(), i, r;
+  var courses = {}, ctype = {}, classes = {}, teachers = {}, enrolled = 0;
+  for (i=0;i<ROWS.length;i++){
+    r = ROWS[i];
+    var s = r[p.k];
+    if (!s.course) continue;
+    courses[s.course] = 1;
+    if (!ctype[s.course]) ctype[s.course] = s.type;
+    classes[r.cls] = 1;
+    enrolled++;
+    if (s.teacher) teachers[s.teacher] = 1;
+  }
+  var sheC = 0, clubC = 0, ck = Object.keys(courses), ci;
+  for (ci=0;ci<ck.length;ci++){ if (ctype[ck[ci]] === '俱乐部') clubC++; else sheC++; }
+  var h = '';
+  h += '<div class="st p"><div class="n">' + ck.length + '</div><div class="t">' + esc(p.name) + '开课数</div></div>';
+  h += '<div class="st s"><div class="n">' + sheC + '</div><div class="t">其中社团</div></div>';
+  h += '<div class="st c"><div class="n">' + clubC + '</div><div class="t">其中俱乐部</div></div>';
+  h += '<div class="st n"><div class="n">' + enrolled + '</div><div class="t">报名总人次</div></div>';
+  h += '<div class="st p"><div class="n">' + Object.keys(classes).length + '</div><div class="t">覆盖班级</div></div>';
+  $('stats').innerHTML = h;
+}
+function renderCourseIndex(){
+  if (S.course){ renderCourseDetail(S.course); return; }
+  var p = per(), i, r, q = (S.cq || '').trim().toLowerCase();
+  var map = {}, keys = [], CUR = [];
+  for (i=0;i<ROWS.length;i++){
+    r = ROWS[i];
+    var ps = r[p.k];
+    if (!ps.course) continue;
+    if (S.ctype && ps.type !== S.ctype) continue;
+    if (q && ps.course.toLowerCase().indexOf(q) === -1 && (ps.teacher || '').toLowerCase().indexOf(q) === -1) continue;
+    if (!map[ps.course]) map[ps.course] = { course:ps.course, type:ps.type, teachers:{}, cls:{}, list:[] };
+    map[ps.course].list.push(r);
+    if (ps.teacher) map[ps.course].teachers[ps.teacher] = 1;
+    map[ps.course].cls[r.cls] = 1;
+  }
+  keys = Object.keys(map).sort(function(a,b){ return a.localeCompare(b, 'zh'); });
+  for (i=0;i<keys.length;i++) CUR.push(keys[i]);
+  CUR_COURSES = CUR;
+  if (!keys.length){
+    $('main').innerHTML = '<div class="empty">没有匹配的课程。试试切换「只看社团 / 只看俱乐部」，或清空搜索。</div>';
+    return;
+  }
+  var h = '';
+  h += '<div class="cfilter" style="margin-bottom:12px"><span style="font-size:13px;color:var(--tx2);align-self:center">共 <b>' + keys.length + '</b> 门课程 · ' + esc(p.name) + '</span></div>';
+  h += '<div class="ccards">';
+  for (i=0;i<keys.length;i++){
+    var g = map[keys[i]], th = Object.keys(g.teachers);
+    h += '<div class="ccard" data-idx="' + i + '">'
+       + '<div class="cn2">' + esc(g.course) + '</div>'
+       + '<div class="cm">' + tagHTML(g.type)
+       + ' <b>' + g.list.length + ' 人</b> · 跨 ' + Object.keys(g.cls).length + ' 个班'
+       + (th.length ? ' · 任课 ' + esc(th.join('、')) : '') + '</div></div>';
+  }
+  h += '</div>';
+  $('main').innerHTML = h;
+}
+function renderCourseDetail(course){
+  var p = per(), i, r;
+  var rows = [], byCls = {}, teachers = {};
+  for (i=0;i<ROWS.length;i++){
+    r = ROWS[i];
+    if (r[p.k].course !== course) continue;
+    rows.push(r);
+    if (!byCls[r.cls]) byCls[r.cls] = [];
+    byCls[r.cls].push(r);
+    if (r[p.k].teacher) teachers[r[p.k].teacher] = 1;
+  }
+  var clsList = Object.keys(byCls).sort(function(a,b){ return cnum(a) - cnum(b); });
+  var th = Object.keys(teachers);
+  var h = '<div class="chead"><div><div class="ct1">' + esc(course) + '</div>'
+        + '<div class="ct2">' + esc(p.name) + ' · 共 ' + rows.length + ' 人 · 跨 ' + clsList.length + ' 个班'
+        + (th.length ? ' · 任课 ' + esc(th.join('、')) : '') + '</div></div>'
+       + '<div class="sp"></div>'
+       + (loggedIn() ? '<button class="btn sm pri" id="cAdd">＋ 加入学生</button>' : '')
+       + '<button class="btn sm" id="cBack">← 返回课程列表</button>'
+       + '<button class="btn sm" id="cCopy">复制点名册</button></div>';
+  for (i=0;i<clsList.length;i++){
+    var cl = clsList[i], arr = byCls[cl];
+    h += '<div class="clsgrp"><div class="clsgrp-h"><span class="nm">' + esc(cl) + '</span>'
+       + '<span class="ct">' + arr.length + ' 人</span><span class="ln"></span></div>'
+       + '<div class="card"><div class="chips">';
+    for (var j=0;j<arr.length;j++){
+      h += '<button class="chip" data-id="' + esc(arr[j].id) + '">' + esc(arr[j].name) + '</button>';
+    }
+    h += '</div></div></div>';
+  }
+  $('main').innerHTML = h;
+  $('cBack').addEventListener('click', function(){ S.course = ''; renderCourseIndex(); });
+  if ($('cAdd')) $('cAdd').addEventListener('click', openCourseAdd);
+  $('cCopy').addEventListener('click', function(){
+    var txt = course + '（' + p.name + '）点名册 · 共 ' + rows.length + ' 人：' + NL
+      + rows.map(function(x){ return x.cls + ' ' + x.name; }).join(NL);
+    copy(txt, '已复制点名册（' + rows.length + ' 人）');
+  });
+}
+
+/* ---------- dialog ---------- */
+function findRow(id){
+  for (var i=0;i<ROWS.length;i++) if (String(ROWS[i].id) === String(id)) return ROWS[i];
+  return null;
+}
+function slotHTML(p, s){
+  var opts = '';
+  var types = ['社团','俱乐部','未报名'];
+  for (var i=0;i<types.length;i++){
+    var sel = ((s.course ? (s.type || '社团') : '未报名') === types[i]) ? ' selected' : '';
+    opts += '<option value="' + types[i] + '"' + sel + '>' + types[i] + '</option>';
+  }
+  var dl = '';
+  var cs = COURSES[p.k] || [];
+  if (cs.length){
+    dl = '<datalist id="dl-' + p.k + '">';
+    for (var j=0;j<cs.length;j++) dl += '<option value="' + esc(cs[j]) + '"></option>';
+    dl += '</datalist>';
+  }
+  return '<div class="slot"><div class="sh">' + esc(p.name) + '</div>'
+    + dl
+    + '<div class="fld"><label>课程名称</label><input type="text" id="f-' + p.k + '-c" list="dl-' + p.k + '" value="' + esc(s.course) + '" placeholder="留空表示未报名"></div>'
+    + '<div class="fld"><label>类型</label><select id="f-' + p.k + '-t">' + opts + '</select></div>'
+    + '<div class="fld"><label>任课教师</label><input type="text" id="f-' + p.k + '-h" value="' + esc(s.teacher) + '" placeholder="可留空"></div>'
+    + '</div>';
+}
+function delLabel(){ return EDIT_CTX === 'course' ? '从本课移除' : '删除该学生'; }
+function resetDel(){
+  DEL_ARM = false;
+  var b = $('dDel');
+  b.textContent = delLabel();
+  b.classList.remove('armed');
+  b.disabled = false;
+}
+function openEdit(id){
+  var r = findRow(id);
+  if (!r) return;
+  if (!requireLogin()) return;
+  EDIT = r; EDIT_CTX = S.role; DLG_MODE = 'edit';
+  resetDel();
+  $('dErr').textContent = '';
+  $('dDel').classList.remove('hide');
+  $('dTitle').textContent = r.name;
+  $('dSub').textContent = r.grade + ' ' + r.cls + ' · 序号 ' + (r.idx || '-');
+  var h = '<div class="slot"><div class="sh">学生信息</div>'
+        + '<div class="fld"><label>姓名（如需改名在此修改）</label><input type="text" id="f-name-edit" value="' + esc(r.name) + '" autocomplete="off"></div>'
+        + '</div>';
+  for (var i=0;i<PERIODS.length;i++) h += slotHTML(PERIODS[i], r[PERIODS[i].k]);
+  h += '<div class="warn">保存后即写入腾讯云数据库，其他教师刷新页面即可看到。</div>';
+  $('dBody').innerHTML = h;
+  $('mask').classList.remove('hide');
+}
+function openAdd(){
+  if (!requireLogin()) return;
+  EDIT = null; DLG_MODE = 'add';
+  resetDel();
+  $('dErr').textContent = '';
+  $('dDel').classList.add('hide');
+  $('dTitle').textContent = '新增学生';
+  $('dSub').textContent = '当前班级：' + (S.grade || '') + ' ' + (S.cls || '');
+  var h = '';
+  for (var i=0;i<PERIODS.length;i++) h += slotHTML(PERIODS[i], { course:'', type:'', teacher:'' });
+  h = '<div class="slot"><div class="sh">学生信息</div>'
+    + '<div class="fld"><label>姓名</label><input type="text" id="f-name" placeholder="必填"></div>'
+    + '<div class="fld"><label>序号（名条中的行号）</label><input type="number" id="f-idx" placeholder="可留空"></div>'
+    + '</div>' + h;
+  h += '<div class="warn">新增的学生将加入当前班级 ' + esc(S.cls || '') + '。</div>';
+  $('dBody').innerHTML = h;
+  $('mask').classList.remove('hide');
+}
+function readSlot(k){
+  return {
+    course: ($('f-' + k + '-c').value || '').trim(),
+    type: $('f-' + k + '-t').value,
+    teacher: ($('f-' + k + '-h').value || '').trim()
+  };
+}
+function payloadOf(){
+  var a = readSlot('a'), b = readSlot('b');
+  if (!a.course){ a.type = '未报名'; a.teacher = ''; }
+  else if (a.type === '未报名') a.type = '社团';
+  if (!b.course){ b.type = '未报名'; b.teacher = ''; }
+  else if (b.type === '未报名') b.type = '社团';
+  return {
+    mon_tue_course: a.course || null,
+    mon_tue_type: a.type,
+    mon_tue_teacher: a.teacher || null,
+    wed_thu_course: b.course || null,
+    wed_thu_type: b.type,
+    wed_thu_teacher: b.teacher || null,
+    updated_at: new Date().toISOString()
+  };
+}
+function save(){
+  if (!requireLogin()) return;
+  var patch = payloadOf();
+  if (EDIT){
+    var nm = ($('f-name-edit') ? ($('f-name-edit').value || '').trim() : '');
+    if (nm) patch.student_name = nm;
+  }
+  $('dSave').disabled = true;
+  $('dErr').textContent = '';
+  var p;
+  if (EDIT){
+    p = db.from(TABLE).update(patch).eq('id', EDIT.id);
+  } else {
+    var name = ($('f-name').value || '').trim();
+    if (!name){ $('dErr').textContent = '请填写学生姓名'; $('dSave').disabled = false; return; }
+    var idx = parseInt($('f-idx').value, 10);
+    patch.student_name = name;
+    patch.grade = S.grade;
+    patch.class_name = S.cls;
+    patch.seq = isNaN(idx) ? 999 : idx;
+    p = db.from(TABLE).insert(patch);
+  }
+  p.then(function(res){
+    if (res && res.error){ $('dErr').textContent = '保存失败：' + (res.error.message || res.error); return; }
+    $('mask').classList.add('hide');
+    toast(EDIT ? '已保存' : ('已新增 ' + ($('f-name') ? $('f-name').value : '')));
+    load(false);
+  }).catch(function(e){
+    $('dErr').textContent = '保存失败：' + ((e && e.message) ? e.message : e);
+  }).then(function(){ $('dSave').disabled = false; });
+}
+
+/* ---------- course add ---------- */
+function courseMeta(k, course){
+  for (var i=0;i<ROWS.length;i++){
+    if (ROWS[i][k].course === course) return { type: ROWS[i][k].type || '社团', teacher: ROWS[i][k].teacher || '' };
+  }
+  return { type:'社团', teacher:'' };
+}
+function openCourseAdd(){
+  if (!requireLogin()) return;
+  DLG_MODE = 'addc';
+  DEL_ARM = false;
+  $('dErr').textContent = '';
+  $('dDel').classList.add('hide');
+  $('dTitle').textContent = '加入学生到本课';
+  var p = per();
+  $('dSub').textContent = '将报名到「' + S.course + '」 · ' + p.name;
+  var gs = grades(), i;
+  var gsel = '<select id="f-g">';
+  for (i=0;i<gs.length;i++) gsel += '<option value="' + esc(gs[i]) + '"' + (gs[i] === S.grade ? ' selected' : '') + '>' + esc(gs[i]) + '</option>';
+  gsel += '</select>';
+  var cs = classesOf(S.grade), csel = '<select id="f-c">';
+  for (i=0;i<cs.length;i++) csel += '<option value="' + esc(cs[i]) + '">' + esc(cs[i]) + '</option>';
+  csel += '</select>';
+  var h = '<div class="slot"><div class="sh">学生信息</div>'
+        + '<div class="fld"><label>年级</label>' + gsel + '</div>'
+        + '<div class="fld"><label>班级</label>' + csel + '</div>'
+        + '<div class="fld"><label>姓名</label><input type="text" id="f-name2" placeholder="必填，例如：李雷" autocomplete="off"></div>'
+        + '</div>'
+        + '<div class="warn">加入后，该生「' + esc(p.name) + '」时段即报名「' + esc(S.course) + '」。若同年级同班已存在同名，则更新其报名；否则新增一条记录。</div>';
+  $('dBody').innerHTML = h;
+  $('f-g').addEventListener('change', function(){
+    var g = this.value, list = classesOf(g), c = $('f-c');
+    c.innerHTML = '';
+    for (var j=0;j<list.length;j++){ var o = document.createElement('option'); o.value = list[j]; o.textContent = list[j]; c.appendChild(o); }
+  });
+  $('mask').classList.remove('hide');
+  setTimeout(function(){ var n = $('f-name2'); if (n) n.focus(); }, 50);
+}
+function saveCourseAdd(){
+  if (!requireLogin()) return;
+  var grade = $('f-g').value;
+  var cls = $('f-c').value;
+  var name = ($('f-name2').value || '').trim();
+  if (!grade || !cls){ $('dErr').textContent = '请选择年级和班级'; return; }
+  if (!name){ $('dErr').textContent = '请填写学生姓名'; return; }
+  var p = per();
+  var op = (S.period === 'a') ? PERIODS[1] : PERIODS[0];
+  var meta = courseMeta(S.period, S.course);
+  var patch = {
+    grade: grade, class_name: cls, student_name: name,
+    updated_at: new Date().toISOString()
+  };
+  patch[p.course] = S.course;
+  patch[p.type] = meta.type || '社团';
+  patch[p.teacher] = meta.teacher || null;
+  patch[op.course] = null;
+  patch[op.type] = '未报名';
+  patch[op.teacher] = null;
+  $('dSave').disabled = true;
+  $('dErr').textContent = '';
+  var existing = null, i;
+  for (i=0;i<ROWS.length;i++){ if (ROWS[i].grade === grade && ROWS[i].cls === cls && ROWS[i].name === name){ existing = ROWS[i]; break; } }
+  var p2;
+  if (existing){
+    p2 = db.from(TABLE).update(patch).eq('id', existing.id);
+  } else {
+    patch.seq = 999;
+    p2 = db.from(TABLE).insert(patch);
+  }
+  p2.then(function(res){
+    if (res && res.error){ $('dErr').textContent = '保存失败：' + (res.error.message || res.error); return; }
+    $('mask').classList.add('hide');
+    toast('已加入 ' + name + ' 到「' + S.course + '」');
+    load(false);
+  }).catch(function(e){
+    $('dErr').textContent = '保存失败：' + ((e && e.message) ? e.message : e);
+  }).then(function(){ $('dSave').disabled = false; });
+}
+
+/* ---------- export ---------- */
+function toCsv(){
+  var list = current(), rows = [];
+  rows.push(['序号','姓名','班级','周一周二课程','周一周二类型','周一周二教师','周三周四课程','周三周四类型','周三周四教师'].join(','));
+  for (var i=0;i<list.length;i++){
+    var r = list[i];
+    rows.push([ r.idx, r.name, r.cls, r.a.course, r.a.type, r.a.teacher, r.b.course, r.b.type, r.b.teacher ]
+      .map(function(v){ v = String(v === null || v === undefined ? '' : v); return /[",]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; })
+      .join(','));
+  }
+  return rows.join(NL);
+}
+function download(){
+  var blob = new Blob([String.fromCharCode(65279) + toCsv()], { type:'text/csv;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (S.cls || '班级') + '课后延时安排.csv';
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); document.body.removeChild(a); }, 200);
+  toast('已导出 ' + (S.cls || ''));
+}
+function copyNone(){
+  var list = current(), names = [];
+  for (var i=0;i<list.length;i++) if (!list[i].a.course && !list[i].b.course) names.push(list[i].name);
+  var txt = (S.cls || '') + ' 两个时段均未报名（' + names.length + '人）：' + NL + names.join('、');
+  copy(txt, names.length ? '已复制未报名名单（' + names.length + '人）' : '本班没有完全未报名的学生');
+}
+function copy(txt, okMsg){
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){ toast(okMsg); }, function(){ fallbackCopy(txt, okMsg); });
+  } else fallbackCopy(txt, okMsg);
+}
+function fallbackCopy(txt, okMsg){
+  var ta = document.createElement('textarea');
+  ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); toast(okMsg); } catch(e){ toast('复制失败，请手动选择', true); }
+  document.body.removeChild(ta);
+}
+
+/* ---------- events ---------- */
+$('roleSeg').addEventListener('click', function(e){
+  var t = e.target.closest ? e.target.closest('.role') : null;
+  if (!t) return;
+  S.role = t.getAttribute('data-r'); S.course = '';
+  savePref(); renderAll();
+});
+$('cTypeSeg').addEventListener('click', function(e){
+  var t = e.target.closest ? e.target.closest('button') : null;
+  if (!t) return;
+  S.ctype = t.getAttribute('data-t'); S.course = '';
+  var bs = $('cTypeSeg').getElementsByTagName('button');
+  for (var i=0;i<bs.length;i++) bs[i].className = (bs[i] === t) ? 'on' : '';
+  renderCourseIndex();
+});
+var cqt = null;
+$('cq').addEventListener('input', function(e){
+  clearTimeout(cqt);
+  var v = e.target.value;
+  cqt = setTimeout(function(){ S.cq = v; S.course = ''; renderCourseIndex(); }, 180);
+});
+$('grades').addEventListener('click', function(e){
+  var t = e.target.closest ? e.target.closest('.gtab') : null;
+  if (!t) return;
+  S.grade = t.getAttribute('data-g');
+  S.cls = classesOf(S.grade)[0] || '';
+  savePref(); renderAll();
+});
+$('classes').addEventListener('click', function(e){
+  var t = e.target.closest ? e.target.closest('.ctab') : null;
+  if (!t) return;
+  S.cls = t.getAttribute('data-c');
+  savePref(); renderAll();
+});
+$('periods').addEventListener('click', function(e){
+  var t = e.target.closest ? e.target.closest('.pbtn') : null;
+  if (!t) return;
+  S.period = t.getAttribute('data-p');
+  S.course = '';
+  savePref(); renderPeriods();
+  if (S.role === 'course'){ renderCourseStats(); renderCourseIndex(); }
+  else { renderMain(); }
+});
+$('viewSeg').addEventListener('click', function(e){
+  var t = e.target.closest ? e.target.closest('button') : null;
+  if (!t) return;
+  S.view = t.getAttribute('data-v');
+  var bs = $('viewSeg').getElementsByTagName('button');
+  for (var i=0;i<bs.length;i++) bs[i].className = (bs[i] === t) ? 'on' : '';
+  savePref(); renderMain();
+});
+$('main').addEventListener('click', function(e){
+  var cc = e.target.closest ? e.target.closest('.ccard') : null;
+  if (cc && S.role === 'course'){
+    var idx = parseInt(cc.getAttribute('data-idx'), 10);
+    if (!isNaN(idx) && CUR_COURSES[idx]){ S.course = CUR_COURSES[idx]; renderCourseIndex(); }
+    return;
+  }
+  var chip = e.target.closest ? e.target.closest('.chip') : null;
+  if (chip){ openEdit(chip.getAttribute('data-id')); return; }
+  var tr = e.target.closest ? e.target.closest('tr.row') : null;
+  if (tr) openEdit(tr.getAttribute('data-id'));
+});
+var qt = null;
+$('q').addEventListener('input', function(e){
+  clearTimeout(qt);
+  var v = e.target.value;
+  qt = setTimeout(function(){ S.q = v; renderMain(); }, 180);
+});
+$('btnRefresh').addEventListener('click', function(){
+  try { localStorage.removeItem(CACHE_KEY); } catch(e){}
+  load();
+});
+$('btnAdd').addEventListener('click', openAdd);
+$('btnPrint').addEventListener('click', function(){ window.print(); });
+$('btnCsv').addEventListener('click', download);
+$('btnCopy').addEventListener('click', copyNone);
+$('dCancel').addEventListener('click', function(){ $('mask').classList.add('hide'); });
+$('dDel').addEventListener('click', function(){
+  if (!EDIT) return;
+  if (!requireLogin()) return;
+  var btn = this;
+  if (!DEL_ARM){
+    DEL_ARM = true;
+    btn.textContent = '再点一次确认' + (EDIT_CTX === 'course' ? '移除' : '删除');
+    btn.classList.add('armed');
+    setTimeout(function(){ if (DEL_ARM) resetDel(); }, 4000);
+    return;
+  }
+  btn.disabled = true;
+  $('dErr').textContent = '';
+  var p2;
+  if (EDIT_CTX === 'course'){
+    var p = per(), patch = {};
+    patch[p.course] = null;
+    patch[p.type] = '未报名';
+    patch[p.teacher] = null;
+    patch.updated_at = new Date().toISOString();
+    p2 = db.from(TABLE).update(patch).eq('id', EDIT.id);
+  } else {
+    p2 = db.from(TABLE).delete().eq('id', EDIT.id);
+  }
+  p2.then(function(res){
+    if (res && res.error){ $('dErr').textContent = '操作失败：' + (res.error.message || res.error); return; }
+    $('mask').classList.add('hide');
+    toast(EDIT_CTX === 'course' ? (EDIT.name + ' 已从「' + S.course + '」移除') : ('已删除 ' + EDIT.name));
+    load(false);
+  }).catch(function(e){
+    $('dErr').textContent = '操作失败：' + ((e && e.message) ? e.message : e);
+  }).then(function(){ resetDel(); });
+});
+$('dSave').addEventListener('click', function(){ if (DLG_MODE === 'addc') saveCourseAdd(); else save(); });
+$('mask').addEventListener('click', function(e){ if (e.target === $('mask')) $('mask').classList.add('hide'); });
+$('loginMask').addEventListener('click', function(e){ if (e.target === $('loginMask')) closeLogin(); });
+$('lgCancel').addEventListener('click', closeLogin);
+$('lgOk').addEventListener('click', submitLogin);
+$('lgPass').addEventListener('keydown', function(e){ if (e.key === 'Enter') submitLogin(); });
+$('lgUser').addEventListener('keydown', function(e){ if (e.key === 'Enter') $('lgPass').focus(); });
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape'){ $('mask').classList.add('hide'); closeLogin(); }
+});
+
+/* ---------- 定时同步 ---------- */
+function bumpRev(){
+  try { var v = (parseInt(localStorage.getItem(REV_KEY) || '0', 10) || 0) + 1; localStorage.setItem(REV_KEY, String(v)); } catch(e){}
+}
+window.addEventListener('storage', function(e){
+  if (e.key === REV_KEY) load(true);
+});
+var SYNC_MS = 30000, syncTimer = null;
+function startSync(){
+  if (syncTimer) return;
+  syncTimer = setInterval(function(){
+    if (document.hidden) return;
+    if (!$('mask').classList.contains('hide')) return;
+    load(true);
+  }, SYNC_MS);
+}
+
+/* ---------- boot ---------- */
+loadPref();
+if (initSdk()){
+  checkSession().then(function(){ load(); startSync(); });
+} else {
+  $('status').innerHTML = '<b class="off">初始化失败</b>';
+  $('main').innerHTML = '<div class="empty">页面初始化失败，请刷新重试。</div>';
+}
+})();
+</script>
+</body>
+</html>
