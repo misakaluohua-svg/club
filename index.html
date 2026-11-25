@@ -183,6 +183,17 @@ td .cell em{font-style:normal;color:var(--tx3)}
 .empty{background:#fff;border:1px dashed var(--line);border-radius:12px;padding:34px 16px;text-align:center;color:var(--tx3);font-size:14px}
 .hide{display:none !important}
 
+/* leave */
+.leave-meta{font-size:12px;color:var(--tx3);margin:2px 0 10px}
+.tag.bj{background:#fdecea;color:#b3261e}
+.tag.sj{background:var(--club-bg);color:var(--club)}
+.tag.qt{background:var(--no-bg);color:var(--tx2)}
+.tag.st-todo{background:var(--no-bg);color:var(--no)}
+.tag.st-doing{background:var(--pri-bg);color:var(--pri)}
+.tag.st-done{background:#e7f5ee;color:var(--ok)}
+.leave-day{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:4px 10px;font-size:12.5px;color:var(--tx2);margin:2px 6px 2px 0}
+.leave-day b{color:var(--tx);font-weight:600}
+
 /* dialog */
 .mask{position:fixed;inset:0;background:rgba(18,26,40,.42);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
 .dlg{background:#fff;border-radius:16px;width:100%;max-width:470px;max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(10,20,40,.25)}
@@ -253,6 +264,7 @@ td .cell em{font-style:normal;color:var(--tx3)}
   <div class="roles" id="roleSeg">
     <button class="role on" data-r="class">班主任 · 按班级查看<small>看本班谁报了社团、谁报了俱乐部、谁没报</small></button>
     <button class="role" data-r="course">授课教师 · 按课程查看<small>按社团/俱乐部名称查点名册，跨班汇总</small></button>
+    <button class="role" data-r="leave">请假记录 · 近三天<small>今天、明天、后天全校学生请假情况（海康云眸）</small></button>
   </div>
 
   <div id="paneClass">
@@ -277,6 +289,28 @@ td .cell em{font-style:normal;color:var(--tx3)}
       <div class="search" style="margin-top:9px">
         <span class="ic">&#128269;</span>
         <input id="cq" type="search" placeholder="搜索课程名称 / 任课教师…" autocomplete="off">
+      </div>
+    </div>
+  </div>
+
+  <div id="paneLeave" class="hide">
+    <div class="panel">
+      <div class="lbl">请假记录 · 近三天 <span id="leaveRange" style="color:var(--tx3);font-weight:400"></span></div>
+      <div class="search" style="margin-bottom:10px">
+        <span class="ic">&#128269;</span>
+        <input id="leaveQ" type="search" placeholder="搜索姓名 / 班级 / 请假原因…" autocomplete="off">
+      </div>
+      <div class="cfilter" id="leaveStatusSeg">
+        <button data-s="" class="on">全部状态</button>
+        <button data-s="TODO">未开始</button>
+        <button data-s="DOING">请假中</button>
+        <button data-s="DONE">已结束</button>
+      </div>
+      <div class="cfilter" id="leaveTypeSeg" style="margin-top:9px">
+        <button data-t="" class="on">全部类型</button>
+        <button data-t="0">病假</button>
+        <button data-t="1">事假</button>
+        <button data-t="2">其他</button>
       </div>
     </div>
   </div>
@@ -365,7 +399,7 @@ var PERIODS = [
 
 var RAW = [];
 var ROWS = [];
-var S = { role:'class', grade:'', cls:'', period:'a', view:'group', q:'', cq:'', ctype:'', course:'' };
+var S = { role:'class', grade:'', cls:'', period:'a', view:'group', q:'', cq:'', ctype:'', course:'', lq:'', lstatus:'', ltype:'' };
 var EDIT = null;
 var EDIT_CTX = 'class';
 var DLG_MODE = 'edit';
@@ -373,6 +407,8 @@ var COURSES = { a:[], b:[] };
 var CUR_COURSES = [];
 var LAST_SIG = '';
 var DEL_ARM = false;
+var LEAVES = [];
+var LEAVE_LOADING = false;
 
 /* ---------- utils ---------- */
 function $(id){ return document.getElementById(id); }
@@ -740,12 +776,19 @@ function scopeRows(){
 }
 function renderAll(){
   var course = S.role === 'course';
+  var leave = S.role === 'leave';
   var rbs = $('roleSeg').getElementsByTagName('button');
   for (var i=0;i<rbs.length;i++) rbs[i].className = (rbs[i].getAttribute('data-r') === S.role) ? 'role on' : 'role';
-  $('paneClass').classList.toggle('hide', course);
-  $('paneCourse').classList.toggle('hide', !course);
-  $('bar').classList.toggle('hide', course);
-  $('btnAdd').classList.toggle('hide', course || !loggedIn());
+  $('paneClass').classList.toggle('hide', course || leave);
+  $('paneCourse').classList.toggle('hide', !course || leave);
+  $('paneLeave').classList.toggle('hide', !leave);
+  $('bar').classList.toggle('hide', course || leave);
+  $('periods').classList.toggle('hide', leave);
+  $('btnAdd').classList.toggle('hide', course || leave || !loggedIn());
+  if (leave){
+    loadLeaves(false);
+    return;
+  }
   renderPeriods();
   if (course){
     renderCourseStats();
@@ -1009,6 +1052,124 @@ function renderCourseDetail(course){
       + rows.map(function(x){ return x.cls + ' ' + x.name; }).join(NL);
     copy(txt, '已复制点名册（' + rows.length + ' 人）');
   });
+}
+
+/* ---------- leave view ---------- */
+function leaveTypeName(t){
+  if (t === 0 || t === '0') return '病假';
+  if (t === 1 || t === '1') return '事假';
+  if (t === 2 || t === '2') return '其他';
+  return '其他';
+}
+function leaveTypeTag(t){
+  var n = leaveTypeName(t);
+  var c = (t === 0 || t === '0') ? 'bj' : (t === 1 || t === '1') ? 'sj' : 'qt';
+  return '<span class="tag ' + c + '">' + n + '</span>';
+}
+function leaveStatusName(st){
+  if (st === 'TODO') return '未开始';
+  if (st === 'DOING') return '请假中';
+  if (st === 'DONE') return '已结束';
+  return st || '-';
+}
+function leaveStatusTag(st){
+  return '<span class="tag st-' + String(st || '').toLowerCase() + '">' + leaveStatusName(st) + '</span>';
+}
+function clsShort(cn){
+  // 海康「五年级(4)班」→「5.4班」
+  var m = String(cn || '').match(/^([一二三四五六七八九]+)年级\((\d+)\)班$/);
+  if (m){
+    var gmap = { '一':'1','二':'2','三':'3','四':'4','五':'5','六':'6','七':'7','八':'8','九':'9' };
+    return (gmap[m[1]] || m[1]) + '.' + m[2] + '班';
+  }
+  return cn || '';
+}
+function loadLeaves(force){
+  if (LEAVE_LOADING) return;
+  if (LEAVES.length && !force){
+    renderLeaves();
+    return;
+  }
+  LEAVE_LOADING = true;
+  $('main').innerHTML = '<div class="empty">正在获取请假记录…</div>';
+  httpJson(API_BASE + '/leave', { method:'GET' }).then(function(r){
+    LEAVE_LOADING = false;
+    if (!r.ok || !r.body || r.body.code !== 200){
+      $('main').innerHTML = '<div class="empty">获取请假记录失败：' + esc((r.body && r.body.message) || ('HTTP ' + r.status)) + '</div>';
+      return;
+    }
+    var d = r.body.data || {};
+    LEAVES = d.rows || [];
+    $('leaveRange').textContent = (d.days && d.days.length)
+      ? ('（' + d.days.map(dayShort).join('、') + '）') : '';
+    renderLeaves();
+  }).catch(function(e){
+    LEAVE_LOADING = false;
+    $('main').innerHTML = '<div class="empty">获取请假记录失败：' + esc((e && e.message) || e) + '</div>';
+  });
+}
+function dayShort(d){
+  var m = String(d || '').match(/-(\d+)-(\d+)$/);
+  return m ? (parseInt(m[1],10) + '月' + parseInt(m[2],10) + '日') : (d || '');
+}
+function fmtT(t){
+  var s = String(t || '');
+  if (s.length >= 16) return s.slice(5, 16); // MM-DD HH:mm
+  return s;
+}
+function renderLeaves(){
+  var q = (S.lq || '').trim().toLowerCase();
+  var st = S.lstatus || '';
+  var tp = S.ltype || '';
+  var list = LEAVES.slice();
+  if (st) list = list.filter(function(x){ return x.leaveStatus === st; });
+  if (tp) list = list.filter(function(x){ return String(x.leaveType) === tp; });
+  if (q){
+    list = list.filter(function(x){
+      var hay = ((x.studentName||'') + ' ' + (x.className||'') + ' ' + clsShort(x.className) + ' ' + (x.leaveReason||'')).toLowerCase();
+      return hay.indexOf(q) !== -1;
+    });
+  }
+  // 统计
+  var today = (LEAVES.length && (S.today)) || '';
+  var stTodo = 0, stDoing = 0, stDone = 0;
+  for (var i=0;i<list.length;i++){
+    if (list[i].leaveStatus === 'TODO') stTodo++;
+    else if (list[i].leaveStatus === 'DOING') stDoing++;
+    else if (list[i].leaveStatus === 'DONE') stDone++;
+  }
+  $('stats').innerHTML =
+    '<div class="st p"><div class="n">' + list.length + '</div><div class="t">近三天请假记录</div></div>'
+    + '<div class="st s"><div class="n">' + stDoing + '</div><div class="t">请假中</div></div>'
+    + '<div class="st c"><div class="n">' + stTodo + '</div><div class="t">未开始</div></div>'
+    + '<div class="st n"><div class="n">' + stDone + '</div><div class="t">已结束</div></div>'
+    + '<div class="st p"><div class="n">' + LEAVES.length + '</div><div class="t">全部（未筛选）</div></div>';
+
+  if (!list.length){
+    $('main').innerHTML = '<div class="empty">近三天没有符合条件的请假记录。</div>';
+    return;
+  }
+  var h = '<div class="tbl"><div class="tbl-wrap"><table><thead><tr>'
+    + '<th style="width:76px">姓名</th><th style="width:84px">班级</th>'
+    + '<th>请假时段</th><th>原因</th><th style="width:60px">类型</th>'
+    + '<th style="width:64px">状态</th><th style="width:64px">申请人</th></tr></thead><tbody>';
+  for (var j=0;j<list.length;j++){
+    var x = list[j];
+    var tspan = (x.startTime && x.endTime)
+      ? fmtT(x.startTime) + ' ~ ' + fmtT(x.endTime)
+      : (x.startDate || '') + (x.endDate ? (' ~ ' + x.endDate) : '');
+    h += '<tr>'
+      + '<td><b>' + esc(x.studentName) + '</b></td>'
+      + '<td>' + esc(clsShort(x.className)) + '</td>'
+      + '<td><span class="cell">' + esc(tspan) + '</span></td>'
+      + '<td><span class="cell">' + esc(x.leaveReason || '—') + '</span></td>'
+      + '<td>' + leaveTypeTag(x.leaveType) + '</td>'
+      + '<td>' + leaveStatusTag(x.leaveStatus) + '</td>'
+      + '<td><span class="cell">' + esc(x.userName || '—') + '</span></td>'
+      + '</tr>';
+  }
+  h += '</tbody></table></div></div>';
+  $('main').innerHTML = h;
 }
 
 /* ---------- dialog ---------- */
@@ -1324,8 +1485,31 @@ $('q').addEventListener('input', function(e){
   var v = e.target.value;
   qt = setTimeout(function(){ S.q = v; renderMain(); }, 180);
 });
+var lqt = null;
+$('leaveQ').addEventListener('input', function(e){
+  clearTimeout(lqt);
+  var v = e.target.value;
+  lqt = setTimeout(function(){ S.lq = v; renderLeaves(); }, 180);
+});
+$('leaveStatusSeg').addEventListener('click', function(e){
+  var t = e.target.closest ? e.target.closest('button') : null;
+  if (!t) return;
+  S.lstatus = t.getAttribute('data-s');
+  var bs = $('leaveStatusSeg').getElementsByTagName('button');
+  for (var i=0;i<bs.length;i++) bs[i].className = (bs[i] === t) ? 'on' : '';
+  renderLeaves();
+});
+$('leaveTypeSeg').addEventListener('click', function(e){
+  var t = e.target.closest ? e.target.closest('button') : null;
+  if (!t) return;
+  S.ltype = t.getAttribute('data-t');
+  var bs = $('leaveTypeSeg').getElementsByTagName('button');
+  for (var i=0;i<bs.length;i++) bs[i].className = (bs[i] === t) ? 'on' : '';
+  renderLeaves();
+});
 $('btnRefresh').addEventListener('click', function(){
   try { localStorage.removeItem(CACHE_KEY); } catch(e){}
+  if (S.role === 'leave'){ LEAVES = []; loadLeaves(true); return; }
   load();
 });
 $('btnAdd').addEventListener('click', openAdd);
@@ -1390,6 +1574,7 @@ function startSync(){
   syncTimer = setInterval(function(){
     if (document.hidden) return;
     if (!$('mask').classList.contains('hide')) return;
+    if (S.role === 'leave') return; // 请假视图不自动刷新学生数据
     load(true);
   }, SYNC_MS);
 }
