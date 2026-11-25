@@ -129,6 +129,7 @@ body{
 .chip.hit{border-color:var(--club);color:var(--club);background:var(--club-bg);font-weight:600}
 .chip.non{background:#f7f8fa;color:var(--tx3);border-style:dashed}
 .chip.non:hover{border-color:var(--no);color:var(--tx);background:var(--no-bg)}
+.lv-badge{display:inline-block;background:var(--club-bg);color:var(--club);border-radius:4px;font-size:10.5px;line-height:1.1;padding:1px 4px;margin-left:5px;font-weight:700;cursor:default;vertical-align:1px}
 
 /* table */
 .tbl{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh);overflow:hidden}
@@ -488,6 +489,7 @@ var CUR_COURSES = [];
 var LAST_SIG = '';
 var DEL_ARM = false;
 var LEAVES = [];
+var LEAVE_MAP = null;
 var LEAVE_LOADING = false;
 var LEAVE_MS = 1800000; // 半小时自动刷新一次
 var leaveTimer = null;
@@ -892,6 +894,7 @@ function renderAll(){
   } else {
     renderGrades(); renderClasses(); renderStats(); renderMain();
   }
+  ensureLeaves();
 }
 
 function renderGrades(){
@@ -995,7 +998,7 @@ function section(dot, title, arr, p, forceType){
       +  '<div class="chips">';
     for (var j=0;j<g.list.length;j++){
       var st = g.list[j];
-      h += '<button class="chip' + (matchQ(st.name) ? ' hit' : '') + '" data-id="' + esc(st.id) + '">' + esc(st.name) + '</button>';
+      h += '<button class="chip' + (matchQ(st.name) ? ' hit' : '') + '" data-id="' + esc(st.id) + '">' + esc(st.name) + leaveBadge(st.cls, st.name) + '</button>';
     }
     h += '</div></div>';
   }
@@ -1012,7 +1015,7 @@ function noneSection(arr, p){
   }
   h += '<div class="card"><div class="chips">';
   for (var i=0;i<arr.length;i++){
-    h += '<button class="chip non' + (matchQ(arr[i].name) ? ' hit' : '') + '" data-id="' + esc(arr[i].id) + '">' + esc(arr[i].name) + '</button>';
+    h += '<button class="chip non' + (matchQ(arr[i].name) ? ' hit' : '') + '" data-id="' + esc(arr[i].id) + '">' + esc(arr[i].name) + leaveBadge(arr[i].cls, arr[i].name) + '</button>';
   }
   h += '</div></div></div>';
   return h;
@@ -1035,7 +1038,7 @@ function renderList(list){
     var r = list[i];
     h += '<tr class="row" data-id="' + esc(r.id) + '">'
       +  '<td style="color:#8b95a5">' + (r.idx || '') + '</td>'
-      +  '<td><b>' + esc(r.name) + '</b></td>'
+      +  '<td><b>' + esc(r.name) + '</b>' + leaveBadge(r.cls, r.name) + '</td>'
       +  cellHTML(r.a) + cellHTML(r.b)
       +  '</tr>';
   }
@@ -1136,7 +1139,7 @@ function renderCourseDetail(course){
        + '<span class="ct">' + arr.length + ' 人</span><span class="ln"></span></div>'
        + '<div class="card"><div class="chips">';
     for (var j=0;j<arr.length;j++){
-      h += '<button class="chip" data-id="' + esc(arr[j].id) + '">' + esc(arr[j].name) + '</button>';
+      h += '<button class="chip" data-id="' + esc(arr[j].id) + '">' + esc(arr[j].name) + leaveBadge(arr[j].cls, arr[j].name) + '</button>';
     }
     h += '</div></div></div>';
   }
@@ -1180,6 +1183,35 @@ function clsShort(cn){
   }
   return cn || '';
 }
+function leaveMap(){
+  if (LEAVE_MAP) return LEAVE_MAP;
+  LEAVE_MAP = {};
+  for (var i=0;i<LEAVES.length;i++){
+    var lv = LEAVES[i];
+    var key = clsShort(lv.className) + '|' + (lv.studentName || '');
+    if (!LEAVE_MAP[key]) LEAVE_MAP[key] = lv;
+  }
+  return LEAVE_MAP;
+}
+function leaveBadge(cls, name){
+  var lv = leaveMap()[cls + '|' + name];
+  if (!lv) return '';
+  var reason = leaveTypeName(lv.leaveType) + (lv.leaveReason ? (' · ' + lv.leaveReason) : '');
+  return '<span class="lv-badge" title="' + esc(reason) + '">假</span>';
+}
+function ensureLeaves(){
+  if (LEAVES.length || LEAVE_LOADING) return;
+  LEAVE_LOADING = true;
+  httpJson(API_BASE + '/leave', { method:'GET' }).then(function(r){
+    LEAVE_LOADING = false;
+    if (r.ok && r.body && r.body.code === 200){
+      LEAVES = (r.body.data && r.body.data.rows) || [];
+      LEAVE_MAP = null;
+      if (S.role === 'class') renderMain();
+      else if (S.role === 'course'){ renderCourseStats(); renderCourseIndex(); }
+    }
+  }).catch(function(){ LEAVE_LOADING = false; });
+}
 function loadLeaves(force, silent){
   if (LEAVE_LOADING) return;
   if (LEAVES.length && !force){
@@ -1196,6 +1228,7 @@ function loadLeaves(force, silent){
     }
     var d = r.body.data || {};
     LEAVES = d.rows || [];
+    LEAVE_MAP = null;
     $('leaveUpdated').textContent = '更新于 ' + nowTime();
     $('leaveRange').textContent = (d.days && d.days.length)
       ? ('（' + d.days.map(dayShort).join('、') + '）') : '';
@@ -1308,7 +1341,7 @@ function rollBuild(){
 function rollEnsureLeaves(force){
   if (LEAVES.length && !force) return Promise.resolve();
   return httpJson(API_BASE + '/leave', { method:'GET' }).then(function(r){
-    if (r.ok && r.body && r.body.code === 200){ LEAVES = (r.body.data && r.body.data.rows) || []; }
+    if (r.ok && r.body && r.body.code === 200){ LEAVES = (r.body.data && r.body.data.rows) || []; LEAVE_MAP = null; }
     return true;
   });
 }
