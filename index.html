@@ -295,7 +295,13 @@ td .cell em{font-style:normal;color:var(--tx3)}
 
   <div id="paneLeave" class="hide">
     <div class="panel">
-      <div class="lbl">请假记录 · 近三天 <span id="leaveRange" style="color:var(--tx3);font-weight:400"></span></div>
+      <div class="lbl" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <span>请假记录 · 近三天 <span id="leaveRange" style="color:var(--tx3);font-weight:400"></span></span>
+        <span style="display:inline-flex;align-items:center;gap:8px">
+          <span id="leaveUpdated" style="font-weight:400;color:var(--tx3)"></span>
+          <button class="btn sm pri" id="btnLeaveRefresh" type="button">&#8635; 手动刷新</button>
+        </span>
+      </div>
       <div class="search" style="margin-bottom:10px">
         <span class="ic">&#128269;</span>
         <input id="leaveQ" type="search" placeholder="搜索姓名 / 班级 / 请假原因…" autocomplete="off">
@@ -409,6 +415,8 @@ var LAST_SIG = '';
 var DEL_ARM = false;
 var LEAVES = [];
 var LEAVE_LOADING = false;
+var LEAVE_MS = 1800000; // 半小时自动刷新一次
+var leaveTimer = null;
 
 /* ---------- utils ---------- */
 function $(id){ return document.getElementById(id); }
@@ -1084,7 +1092,7 @@ function clsShort(cn){
   }
   return cn || '';
 }
-function loadLeaves(force){
+function loadLeaves(force, silent){
   if (LEAVE_LOADING) return;
   if (LEAVES.length && !force){
     renderLeaves();
@@ -1100,9 +1108,11 @@ function loadLeaves(force){
     }
     var d = r.body.data || {};
     LEAVES = d.rows || [];
+    $('leaveUpdated').textContent = '更新于 ' + nowTime();
     $('leaveRange').textContent = (d.days && d.days.length)
       ? ('（' + d.days.map(dayShort).join('、') + '）') : '';
     renderLeaves();
+    if (!silent) toast('已更新 ' + LEAVES.length + ' 条请假记录');
   }).catch(function(e){
     LEAVE_LOADING = false;
     $('main').innerHTML = '<div class="empty">获取请假记录失败：' + esc((e && e.message) || e) + '</div>';
@@ -1116,6 +1126,11 @@ function fmtT(t){
   var s = String(t || '');
   if (s.length >= 16) return s.slice(5, 16); // MM-DD HH:mm
   return s;
+}
+function nowTime(){
+  var d = new Date();
+  function p(n){ return (n < 10 ? '0' : '') + n; }
+  return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
 }
 function renderLeaves(){
   var q = (S.lq || '').trim().toLowerCase();
@@ -1512,6 +1527,10 @@ $('btnRefresh').addEventListener('click', function(){
   if (S.role === 'leave'){ LEAVES = []; loadLeaves(true); return; }
   load();
 });
+$('btnLeaveRefresh').addEventListener('click', function(){
+  if (LEAVE_LOADING){ toast('正在获取中，请稍候'); return; }
+  loadLeaves(true);
+});
 $('btnAdd').addEventListener('click', openAdd);
 $('btnPrint').addEventListener('click', function(){ window.print(); });
 $('btnCsv').addEventListener('click', download);
@@ -1578,11 +1597,19 @@ function startSync(){
     load(true);
   }, SYNC_MS);
 }
+function startLeaveSync(){
+  if (leaveTimer) return;
+  leaveTimer = setInterval(function(){
+    if (S.role !== 'leave') return;
+    if (!$('mask').classList.contains('hide')) return;
+    loadLeaves(true, true); // 每半小时强制静默拉取最新请假记录
+  }, LEAVE_MS);
+}
 
 /* ---------- boot ---------- */
 loadPref();
 if (initSdk()){
-  checkSession().then(function(){ load(); startSync(); });
+  checkSession().then(function(){ load(); startSync(); startLeaveSync(); });
 } else {
   $('status').innerHTML = '<b class="off">初始化失败</b>';
   $('main').innerHTML = '<div class="empty">页面初始化失败，请刷新重试。</div>';
